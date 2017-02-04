@@ -1,6 +1,7 @@
 import base64
 from Crypto.Cipher import AES
 from Crypto.Hash import SHA256
+import hashids
 
 import config
 from util.exception import InvalidIDException
@@ -8,7 +9,7 @@ from util.exception import InvalidIDException
 
 BLOCK_SIZE = 32
 PADDING_CHAR = '*'
-cipher = AES.new(config.ID_ENCRYPTION_KEY)
+cipher = hashids.Hashids(salt=config.ID_ENCRYPTION_KEY)
 
 
 def _pad(s):
@@ -28,7 +29,7 @@ def get_encid(decid):
         raise InvalidIDException('Decrypted ID must be int-castable')
 
     # Slashes are not URL-friendly; replace them with dashes
-    return base64.b64encode(cipher.encrypt(_pad(str(decid)))).replace('/', '-').replace('+', '~')
+    return cipher.encode(decid)
 
 
 def get_decid(encid, force=False):
@@ -58,7 +59,7 @@ def get_decid(encid, force=False):
 
     try:
         str(encid)
-        return int(cipher.decrypt(base64.b64decode(str(encid).replace('-', '/').replace('~', '+'))).rstrip(PADDING_CHAR))
+        return int(cipher.decrypt(encid)[0])
     except:
         raise InvalidIDException('The encrypted ID is not valid')
 
